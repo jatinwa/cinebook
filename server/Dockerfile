@@ -1,21 +1,27 @@
-# FROM node:20-alpine
+FROM node:20-alpine AS base
+WORKDIR /app
 
-# WORKDIR /app
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
 
-# COPY package*.json ./
-# RUN npm install --production
+# Copy source
+COPY . .
 
-# COPY . .
+# ── Production image ────────────────────────────────────────────────────────
+FROM node:20-alpine AS production
+WORKDIR /app
 
-# EXPOSE 5000
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/src ./src
+COPY --from=base /app/package.json ./
 
-# CMD ["node", "src/index.js"]
-# ```
+# Non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
-# ---
+EXPOSE 5000
 
-# **`server/.dockerignore`**
-# ```
-# node_modules
-# .env
-# *.log
+ENV NODE_ENV=production
+
+CMD ["node", "src/index.js"]

@@ -2,7 +2,10 @@ import { Worker } from 'bullmq';
 import { transporter } from '../config/mailer.js';
 import { ENV } from '../config/env.js';
 
-const connection = { url: ENV.REDIS_URL, tls: {} };
+const connection = {
+  url: ENV.REDIS_URL,
+  ...(ENV.NODE_ENV === 'production' && { tls: {} }),
+};
 
 const emailWorker = new Worker(
   'email',

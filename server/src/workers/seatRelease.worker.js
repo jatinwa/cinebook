@@ -3,7 +3,10 @@ import { query } from '../config/db.js';
 import { emitSeatUpdate } from '../socket/index.js';
 import { ENV } from '../config/env.js';
 
-const connection = { url: ENV.REDIS_URL, tls: {} };
+const connection = {
+  url: ENV.REDIS_URL,
+  ...(ENV.NODE_ENV === 'production' && { tls: {} }),
+};
 
 const seatReleaseWorker = new Worker(
   'seat-release',
