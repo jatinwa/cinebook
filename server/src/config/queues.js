@@ -3,7 +3,12 @@ import { ENV } from './env.js';
 
 const connection = {
   url: ENV.REDIS_URL,
-  ...(ENV.NODE_ENV === 'production' && { tls: {} }),
+  tls: ENV.REDIS_URL?.startsWith('rediss://') ? {} : undefined,
+  maxRetriesPerRequest: 3,
+  retryStrategy(times) {
+    if (times > 3) return null;
+    return Math.min(times * 500, 2000);
+  },
 };
 
 export const emailQueue = new Queue('email', { connection });

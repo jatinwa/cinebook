@@ -10,12 +10,11 @@ import { bookingLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-// All booking routes require authentication
 router.use(authenticate);
 
-router.post('/confirm', bookingLimiter, confirmBooking);   // POST /api/bookings/confirm
-router.get('/', getUserBookings);                          // GET  /api/bookings
-router.get('/:id', getBookingById);                        // GET  /api/bookings/:id
-router.post('/:id/cancel', cancelBooking);                 // POST /api/bookings/:id/cancel
+router.post('/confirm', bookingLimiter, confirmBooking);
+router.get('/', getUserBookings);
+router.get('/:id', getBookingById);
+router.post('/:id/cancel', cancelBooking);
 
 export default router;
