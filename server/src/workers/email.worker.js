@@ -43,6 +43,7 @@ const emailWorker = new Worker(
   {
     connection,
     concurrency: 5, // process 5 emails at a time
+    skipVersionCheck: true,
   }
 );
 

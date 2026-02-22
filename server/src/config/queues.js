@@ -11,8 +11,17 @@ const connection = {
   },
 };
 
-export const emailQueue = new Queue('email', { connection });
-export const seatReleaseQueue = new Queue('seat-release', { connection });
-export const notificationQueue = new Queue('notification', { connection });
+const queueOptions = {
+  connection,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: 1000,
+  },
+  skipVersionCheck: true,
+};
+
+export const emailQueue = new Queue('email', queueOptions);
+export const seatReleaseQueue = new Queue('seat-release', queueOptions);
+export const notificationQueue = new Queue('notification', queueOptions);
 
 console.log('✅ BullMQ queues initialized');
