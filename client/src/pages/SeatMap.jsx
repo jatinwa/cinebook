@@ -1,15 +1,36 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import SeatGrid from '../components/seats/SeatGrid';
-import { ArrowLeft } from 'lucide-react';
+import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import SeatGrid from "../components/seats/SeatGrid";
+import { ArrowLeft } from "lucide-react";
 
 export default function SeatMap() {
   const { id: showId } = useParams();
   const navigate = useNavigate();
   const { currentShow } = useSelector((s) => s.booking);
 
+  useEffect(() => {
+    if (currentShow?.show?.id === showId) return;
+
+    const fetchShow = async () => {
+      setFetchLoading(true);
+      try {
+        const { data } = await showService.getById(showId);
+        setShowDetails(data.data);
+      } catch (err) {
+        console.error("Failed to fetch show:", err);
+        // ── Don't leave user on blank page — redirect to home
+        toast.error("Show not found");
+        navigate("/");
+      } finally {
+        setFetchLoading(false);
+      }
+    };
+
+    fetchShow();
+  }, [showId]);
+
   const handleSeatsLocked = () => {
-    navigate('/booking/summary');
+    navigate("/booking/summary");
   };
 
   return (
@@ -25,12 +46,19 @@ export default function SeatMap() {
           </button>
           {currentShow && (
             <div>
-              <h1 className="text-xl font-bold text-white">{currentShow.movie?.title}</h1>
+              <h1 className="text-xl font-bold text-white">
+                {currentShow.movie?.title}
+              </h1>
               <p className="text-brand-muted text-sm">
-                {currentShow.show?.theatre_name} · {currentShow.show?.screen_name} ·{' '}
-                {new Date(currentShow.show?.start_time).toLocaleString('en-IN', {
-                  dateStyle: 'medium', timeStyle: 'short',
-                })}
+                {currentShow.show?.theatre_name} ·{" "}
+                {currentShow.show?.screen_name} ·{" "}
+                {new Date(currentShow.show?.start_time).toLocaleString(
+                  "en-IN",
+                  {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }
+                )}
               </p>
             </div>
           )}

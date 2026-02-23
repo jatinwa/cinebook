@@ -1,55 +1,78 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { authService } from '../../services/authService';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { authService } from "../../services/authService";
 
 // ── Async thunks ──────────────────────────────────────────────────────────
 
 export const loginUser = createAsyncThunk(
-  'auth/login',
+  "auth/login",
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authService.login(credentials);
-      localStorage.setItem('accessToken', data.data.accessToken);
+      localStorage.setItem("accessToken", data.data.accessToken);
       return data.data.user;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Login failed');
+      return rejectWithValue(err.response?.data?.message || "Login failed");
     }
   }
 );
 
 export const registerUser = createAsyncThunk(
-  'auth/register',
+  "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
       const { data } = await authService.register(userData);
-      localStorage.setItem('accessToken', data.data.accessToken);
+      localStorage.setItem("accessToken", data.data.accessToken);
       return data.data.user;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Registration failed');
+      return rejectWithValue(
+        err.response?.data?.message || "Registration failed"
+      );
     }
   }
 );
 
 export const fetchMe = createAsyncThunk(
-  'auth/me',
+  "auth/me",
   async (_, { rejectWithValue }) => {
     try {
+      const token = localStorage.getItem("accessToken");
+
+      // No token at all — skip the API call entirely
+      if (!token) return rejectWithValue("no_token");
+
       const { data } = await authService.getMe();
       return data.data.user;
     } catch {
-      return rejectWithValue(null);
+      // Try silent refresh before giving up
+      try {
+        const { data } =
+          (await authService.refresh?.()) ||
+          (await import("./../../services/api").then((m) =>
+            m.default.post("/auth/refresh")
+          ));
+        const newToken = data.data.accessToken;
+        localStorage.setItem("accessToken", newToken);
+
+        // Retry getMe with new token
+        const { data: meData } = await authService.getMe();
+        return meData.data.user;
+      } catch {
+        localStorage.removeItem("accessToken");
+        return rejectWithValue("session_expired");
+      }
     }
   }
 );
 
-export const logoutUser = createAsyncThunk('auth/logout', async () => {
+export const logoutUser = createAsyncThunk("auth/logout", async () => {
   await authService.logout();
-  localStorage.removeItem('accessToken');
+  localStorage.removeItem("accessToken");
 });
 
 // ── Slice ─────────────────────────────────────────────────────────────────
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState: {
     user: null,
     loading: false,
@@ -57,12 +80,17 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
-    clearError: (state) => { state.error = null; },
+    clearError: (state) => {
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     // Login
     builder
-      .addCase(loginUser.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(loginUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
@@ -74,7 +102,10 @@ const authSlice = createSlice({
 
     // Register
     builder
-      .addCase(registerUser.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(registerUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
@@ -88,11 +119,13 @@ const authSlice = createSlice({
     builder
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;
-        state.initialized = true;
+        state.initialized = true; // ← always true after fetchMe resolves
+        state.loading = false;
       })
       .addCase(fetchMe.rejected, (state) => {
         state.user = null;
-        state.initialized = true;
+        state.initialized = true; // ← critical — even on failure, we're done checking
+        state.loading = false;
       });
 
     // Logout
