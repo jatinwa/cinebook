@@ -7,23 +7,27 @@ export const useSocket = (showId) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Don't connect if no showId
     if (!showId) return;
 
     connectSocket();
-
-    // Join the show's room to receive seat updates
     socket.emit('join_show', showId);
 
-    // Listen for real-time seat status changes
-    socket.on('seat_update', (payload) => {
+    const handleSeatUpdate = (payload) => {
       if (payload.showId === showId) {
         dispatch(applySocketUpdate(payload));
       }
-    });
+    };
 
+    socket.on('seat_update', handleSeatUpdate);
+
+    // ── Cleanup runs when:
+    //    - Component unmounts (user leaves seat map)
+    //    - showId changes
+    //    - User logs out
     return () => {
       socket.emit('leave_show', showId);
-      socket.off('seat_update');
+      socket.off('seat_update', handleSeatUpdate); // remove specific listener only
       disconnectSocket();
     };
   }, [showId, dispatch]);

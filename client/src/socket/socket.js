@@ -2,9 +2,11 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Never auto-connect — we control this manually
 export const socket = io(SOCKET_URL, {
-  autoConnect: false,      // we connect manually when needed
+  autoConnect: false,
   withCredentials: true,
+  transports: ['websocket', 'polling'], // try WebSocket first
 });
 
 export const connectSocket = () => {
@@ -12,5 +14,6 @@ export const connectSocket = () => {
 };
 
 export const disconnectSocket = () => {
-  if (socket.connected) socket.disconnect();
+  socket.disconnect();
+  socket.off(); // remove ALL listeners
 };
