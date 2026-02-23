@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import SeatGrid from "../components/seats/SeatGrid";
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 
 export default function SeatMap() {
   const { id: showId } = useParams();
